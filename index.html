@@ -1,0 +1,200 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MARINE 3D | Virtual Ship & ETO Explorer</title>
+<style>
+:root{--bg:#06111d;--panel:#0b1b2a;--panel2:#102638;--line:#203b50;--cyan:#5ce1d0;--text:#edf6ff;--muted:#8daabe;--gold:#f3bd66}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--text);font:14px Inter,Segoe UI,Arial,sans-serif}
+.app{height:100vh;display:grid;grid-template-columns:270px minmax(0,1fr) 310px;overflow:hidden}
+.left,.right{background:linear-gradient(180deg,#0b1b2a,#081522);overflow:auto;padding:20px}
+.left{border-right:1px solid var(--line)}.right{border-left:1px solid var(--line)}
+.brand{display:flex;gap:10px;align-items:center;margin-bottom:26px}.logo{width:38px;height:38px;border:1px solid #347187;border-radius:10px;display:grid;place-items:center;background:#0d3445;color:var(--cyan);font-size:19px}
+.brand b{letter-spacing:1.6px;font-size:15px}.brand small{display:block;color:var(--muted);font-size:9px;letter-spacing:2px;margin-top:4px}
+.section-label{font-size:10px;color:#6f95ad;letter-spacing:2px;font-weight:700;margin:20px 0 10px}
+.nav button,.action,.room-btn{width:100%;display:flex;align-items:center;gap:10px;border:1px solid transparent;background:transparent;color:#a9c2d5;padding:11px 12px;border-radius:9px;text-align:left;cursor:pointer;margin:3px 0}
+.nav button.active,.nav button:hover,.room-btn.active{background:#123447;border-color:#27586d;color:#eaffff}
+.nav .ico{width:23px;text-align:center;color:var(--cyan);font-size:16px}
+.status{border:1px solid #22485c;background:#0d2636;border-radius:12px;padding:13px;margin-top:20px}.status strong{font-size:11px;color:var(--cyan);letter-spacing:1px}.status p{font-size:11px;color:var(--muted);line-height:1.5;margin:8px 0 0}
+main{position:relative;min-width:0;background:radial-gradient(ellipse at 50% 45%,#17374b 0%,#071522 72%)}
+#stage{position:absolute;inset:0}canvas{display:block;width:100%;height:100%}
+.topbar{position:absolute;top:18px;left:20px;right:20px;display:flex;justify-content:space-between;align-items:center;pointer-events:none;gap:10px}
+.crumb{font-size:10px;color:#9bb7ca;letter-spacing:1.4px}.view-title{font-size:21px;font-weight:650;margin-top:7px}
+.top-actions{display:flex;gap:8px;pointer-events:auto}.action{width:auto;background:#0c2232;border:1px solid #25475c;padding:10px 13px;margin:0;font-size:11px;white-space:nowrap}
+.action.primary{background:#12606b;border-color:#2aa7a6;color:white}
+.bottom-hud{position:absolute;bottom:18px;left:20px;right:20px;display:flex;justify-content:space-between;align-items:end;gap:10px;pointer-events:none}
+.hint{background:#091a29d9;border:1px solid #234256;border-radius:9px;padding:11px 14px;font-size:11px;color:#a8c5d9;max-width:70%}
+.coordinates{font:10px monospace;color:#6f96af;letter-spacing:1px}
+.right .eyebrow{font-size:10px;letter-spacing:1.8px;color:var(--cyan);font-weight:bold}
+.right h2{font-size:20px;margin:7px 0 17px}
+.room-list{display:grid;grid-template-columns:1fr 1fr;gap:7px}
+.room-btn{justify-content:center;text-align:center;padding:10px 6px;font-size:11px;margin:0;background:#0c2131;border:1px solid #203c50}
+.control-row{display:flex;gap:7px;margin-top:10px}.control-row .action{flex:1;justify-content:center}
+.card{border:1px solid #254357;background:linear-gradient(145deg,#10283a,#0b1c2b);border-radius:13px;padding:15px;margin-top:16px}
+.tag{display:inline-block;font-size:9px;letter-spacing:1px;color:#77e8d9;background:#164653;padding:5px 8px;border-radius:20px}
+.card h3{font-size:16px;margin:11px 0 7px}.card p{color:#adc4d5;font-size:12px;line-height:1.6;margin:7px 0}
+.specs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-top:12px}.spec{background:#0a1b29;border:1px solid #1d3a4d;border-radius:8px;padding:9px}.spec small{display:block;color:#7696ad;font-size:9px;letter-spacing:1px}.spec b{display:block;font-size:12px;margin-top:5px;color:#e4f6ff}
+.learning{border-top:1px solid #254357;margin-top:13px;padding-top:12px}.learning h4{font-size:11px;color:var(--gold);margin:0 0 7px;letter-spacing:.7px}
+.progress{height:4px;background:#173449;border-radius:8px;margin:8px 0}.progress span{display:block;width:38%;height:100%;background:var(--cyan);border-radius:8px}
+.toast{position:absolute;left:50%;top:80px;transform:translateX(-50%);padding:10px 14px;background:#092333;border:1px solid #2a6272;color:#bff7ed;border-radius:10px;font-size:11px;display:none;z-index:5}
+#loader{position:absolute;inset:0;display:grid;place-items:center;background:#06111de8;z-index:4;text-align:center;padding:25px}
+.loader-box{max-width:330px}.spinner{width:34px;height:34px;border:3px solid #25465b;border-top-color:var(--cyan);border-radius:50%;animation:spin 1s linear infinite;margin:0 auto 15px}
+@keyframes spin{to{transform:rotate(360deg)}}#loader h3{font-size:14px;margin:0 0 8px}#loader p{color:#8eaabe;font-size:11px;line-height:1.6}
+@media(max-width:1050px){.app{grid-template-columns:220px minmax(0,1fr) 275px}.left,.right{padding:14px}}
+@media(max-width:780px){.app{height:100dvh;grid-template-columns:1fr;grid-template-rows:55vh 45vh}.left{display:none}main{grid-row:1}.right{grid-row:2;border:0;border-top:1px solid var(--line);padding:11px;display:grid;grid-template-columns:1fr 1fr;gap:0 12px}.right .eyebrow,.right h2,.room-list,.control-row{grid-column:1/-1}.card{margin-top:8px;padding:11px}.topbar{top:12px}.view-title{font-size:17px}.top-actions .action{padding:8px;font-size:10px}.bottom-hud{bottom:10px}.hint{font-size:10px}.coordinates{display:none}}
+</style>
+</head>
+<body>
+<div class="app">
+<aside class="left">
+<div class="brand"><div class="logo">⚓</div><div><b>MARINE 3D</b><small>ETO LEARNING ENVIRONMENT</small></div></div>
+<div class="section-label">VESSEL NAVIGATION</div>
+<div class="nav">
+<button class="active" data-mode="exterior"><span class="ico">◈</span>Vessel exterior</button>
+<button data-mode="cutaway"><span class="ico">▧</span>Cutaway overview</button>
+<button data-mode="interior"><span class="ico">⌂</span>Explore interiors</button>
+</div>
+<div class="section-label">LEARNING MODULES</div>
+<div class="nav">
+<button data-room="engine"><span class="ico">⚙</span>Propulsion & engine</button>
+<button data-room="ecr"><span class="ico">▤</span>Engine control room</button>
+<button data-room="electrical"><span class="ico">ϟ</span>Electrical distribution</button>
+<button data-room="bridge"><span class="ico">⌁</span>Bridge & navigation</button>
+<button data-room="emergency"><span class="ico">✚</span>Emergency systems</button>
+</div>
+<div class="status"><strong>TRAINING MODE · CONCEPT VESSEL</strong><p>Interactive familiarization for ETO study. Equipment ratings and arrangements are illustrative; real ships differ.</p></div>
+</aside>
+<main>
+<div id="stage"></div>
+<div class="topbar"><div><div class="crumb">TRAINING SIMULATOR / MERCHANT VESSEL</div><div class="view-title" id="viewTitle">Vessel exterior</div></div>
+<div class="top-actions"><button class="action" id="reset">↺ Reset view</button><button class="action primary" id="tour">▶ Guided tour</button></div></div>
+<div class="bottom-hud"><div class="hint">Drag to orbit · Scroll / pinch to zoom · Select highlighted equipment</div><div class="coordinates" id="coords">CAM 01 · EXTERIOR</div></div>
+<div class="toast" id="toast"></div>
+<div id="loader"><div class="loader-box"><div class="spinner"></div><h3>Preparing vessel model</h3><p>Loading the CC0 ship asset and building the ETO exploration spaces…</p></div></div>
+</main>
+<aside class="right">
+<div class="eyebrow">SHIP SYSTEMS</div><h2>Explore equipment</h2>
+<div class="room-list">
+<button class="room-btn active" data-room="all">Full ship</button><button class="room-btn" data-room="engine">Engine room</button>
+<button class="room-btn" data-room="ecr">ECR</button><button class="room-btn" data-room="electrical">Electrical</button>
+<button class="room-btn" data-room="bridge">Bridge</button><button class="room-btn" data-room="emergency">Emergency</button>
+</div>
+<div class="control-row"><button class="action" id="toggleCut">◫ Cutaway</button><button class="action" id="labels">◎ Labels: ON</button></div>
+<div class="card" id="detail"><span class="tag">VESSEL OVERVIEW</span><h3>Container / merchant ship</h3><p>Select a compartment or equipment marker. The scene will focus on the chosen system and display its ETO study notes.</p>
+<div class="specs"><div class="spec"><small>SHIP TYPE</small><b>Merchant vessel</b></div><div class="spec"><small>STUDY AREA</small><b>Marine electrical</b></div></div>
+<div class="learning"><h4>ETO LEARNING PATH</h4><p>Understand equipment function → trace power/control → identify protection → learn safe isolation.</p><div class="progress"><span></span></div></div></div>
+</aside>
+</div>
+<script type="module">
+import * as THREE from 'https://cdn.jsdelivr.net/npm/three@0.160.0/build/three.module.js';
+import {OrbitControls} from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/controls/OrbitControls.js';
+import {GLTFLoader} from 'https://cdn.jsdelivr.net/npm/three@0.160.0/examples/jsm/loaders/GLTFLoader.js';
+
+const stage=document.querySelector('#stage'),scene=new THREE.Scene();scene.background=new THREE.Color('#071522');scene.fog=new THREE.Fog('#071522',190,520);
+const camera=new THREE.PerspectiveCamera(42,stage.clientWidth/stage.clientHeight,.1,1500);camera.position.set(170,115,195);
+const renderer=new THREE.WebGLRenderer({antialias:true,alpha:false});renderer.setPixelRatio(Math.min(devicePixelRatio,2));renderer.setSize(stage.clientWidth,stage.clientHeight);renderer.shadowMap.enabled=true;renderer.shadowMap.type=THREE.PCFSoftShadowMap;renderer.toneMapping=THREE.ACESFilmicToneMapping;renderer.toneMappingExposure=1.15;stage.appendChild(renderer.domElement);
+const controls=new OrbitControls(camera,renderer.domElement);controls.enableDamping=true;controls.dampingFactor=.07;controls.maxPolarAngle=Math.PI*.48;controls.minDistance=25;controls.maxDistance=600;controls.target.set(0,10,0);
+scene.add(new THREE.HemisphereLight(0xb8e3ff,0x162331,2.1));const key=new THREE.DirectionalLight(0xffe4c0,3.4);key.position.set(100,180,100);key.castShadow=true;scene.add(key);
+const fill=new THREE.DirectionalLight(0x5dc8ff,1.4);fill.position.set(-120,70,-90);scene.add(fill);
+const sea=new THREE.Mesh(new THREE.PlaneGeometry(1200,1200),new THREE.MeshStandardMaterial({color:'#0b2c42',metalness:.35,roughness:.3}));sea.rotation.x=-Math.PI/2;sea.position.y=-3;scene.add(sea);
+const grid=new THREE.GridHelper(600,60,'#204359','#153044');grid.position.y=-2.8;scene.add(grid);
+const root=new THREE.Group();scene.add(root),inside=new THREE.Group();scene.add(inside);inside.visible=false;
+const ray=new THREE.Raycaster(),pointer=new THREE.Vector2(),pickables=[],labels=[];
+function mat(c,metal=.15,rough=.5){return new THREE.MeshStandardMaterial({color:c,metalness:metal,roughness:rough})}
+const M={steel:mat('#9cabb4',.5,.42),blue:mat('#1c526f',.45,.4),red:mat('#a8403c',.35,.45),deck:mat('#536b78',.25,.65),machine:mat('#3f99aa',.5,.3),gold:mat('#efb94e',.35,.35),dark:mat('#233c4d',.3,.4),glass:new THREE.MeshStandardMaterial({color:'#63c9e7',transparent:true,opacity:.38,metalness:.2}),white:mat('#e3ebef',.25,.4),green:mat('#37b79b',.25,.4)};
+function meshBox(parent,name,position,size,material,detail='',room='all',select=true){const o=new THREE.Mesh(new THREE.BoxGeometry(...size),material);o.position.set(...position);o.castShadow=true;o.receiveShadow=true;o.name=name;o.userData={name,detail,room};parent.add(o);if(select)pickables.push(o);return o}
+function cyl(parent,name,pos,radius,height,material,room,detail){const o=new THREE.Mesh(new THREE.CylinderGeometry(radius,radius,height,28),material);o.position.set(...pos);o.castShadow=true;o.name=name;o.userData={name,detail,room};parent.add(o);pickables.push(o);return o}
+function pipe(parent,a,b,r=.7,color='#b6c8d2'){const v1=new THREE.Vector3(...a),v2=new THREE.Vector3(...b),d=v2.clone().sub(v1);const o=new THREE.Mesh(new THREE.CylinderGeometry(r,r,d.length(),12),mat(color,.55,.35));o.position.copy(v1.add(v2).multiplyScalar(.5));o.quaternion.setFromUnitVectors(new THREE.Vector3(0,1,0),d.normalize());parent.add(o)}
+function makeTag(text,position){const c=document.createElement('canvas');c.width=512;c.height=100;const x=c.getContext('2d');x.fillStyle='#071724';x.fillRect(0,0,512,100);x.strokeStyle='#56d9cc';x.lineWidth=4;x.strokeRect(3,3,506,94);x.fillStyle='#e9fbff';x.font='bold 32px Arial';x.textAlign='center';x.fillText(text,256,63);const s=new THREE.Sprite(new THREE.SpriteMaterial({map:new THREE.CanvasTexture(c),depthTest:false}));s.position.set(...position);s.scale.set(27,5.3,1);s.userData.label=true;scene.add(s);labels.push(s);return s}
+function buildTrainingInteriors(){
+ // Interior cutaway arrangement: rooms are separate, spatially aligned compartments.
+ const deck=meshBox(inside,'Machinery deck',[0,0,0],[160,4,52],M.deck,'Lower machinery deck','all',false);
+ // engine room floor and bulkheads
+ meshBox(inside,'Engine room enclosure',[-43,14,0],[62,28,48],M.dark,'Engine room compartment','engine',false);
+ meshBox(inside,'Engine room floor',[-43,1,0],[60,2,46],M.deck,'','engine',false);
+ // realistic grouped diesel engine, cylinder heads, crankcase, turbo and flywheel
+ meshBox(inside,'Main diesel engine',[-47,12,0],[34,13,17],M.machine,'Main propulsion engine: combustion converts fuel energy into shaft power. Study fuel, lubrication, cooling and starting air.','engine');
+ for(let i=0;i<8;i++){cyl(inside,'Main engine cylinder '+(i+1),[-60+i*3.7,21,0],2.4,6,M.gold,'engine','Cylinder head and combustion unit of the main diesel engine.')}
+ meshBox(inside,'Engine bedplate',[-47,4,0],[38,3,20],M.dark,'Foundation and alignment support for the engine.','engine');
+ cyl(inside,'Flywheel',[-27,12,0],6,4,M.dark,'engine','Rotating flywheel / coupling area.');
+ cyl(inside,'Turbocharger',[-35,20,13],4,7,M.red,'engine','Exhaust-driven turbocharger supplies charge air.');
+ // aux generator sets
+ for(let g=0;g<2;g++){let x=-8,y=7,z=g?13:-13;meshBox(inside,'Auxiliary generator '+(g+1),[x,y,z],[16,8,8],M.machine,'Diesel generator set supplying ship electrical power. ETO: AVR, excitation, protection and synchronizing.','engine');cyl(inside,'Generator alternator '+(g+1),[x+7,y,z],3,5,M.gold,'engine','Alternator converts mechanical rotation to electrical energy.');}
+ // pumps, separators, air compressor, heat exchangers
+ [['Cooling water pump',[-17,5,18]],['Fuel oil pump',[-17,5,-18]],['Lube oil pump',[2,5,18]],['Air compressor',[2,5,-18]]].forEach(([n,p])=>{cyl(inside,n,p,3,5,M.red,'engine',n+' transfers or compresses the associated service fluid.')});
+ meshBox(inside,'Plate heat exchanger',[13,8,0],[9,12,13],M.white,'Transfers heat between cooling circuits.','engine');
+ // piping runs, colored service pipes
+ pipe(inside,[-62,26,16],[14,26,16],.9,'#c85b48');pipe(inside,[-62,29,-16],[14,29,-16],.9,'#4d9ac8');pipe(inside,[-18,9,20],[14,9,20],.8,'#dbb85a');
+ // ECR separated room with operator panels
+ meshBox(inside,'ECR compartment',[45,13,0],[36,26,48],M.blue,'Engine Control Room: monitoring and control of machinery.','ecr',false);
+ meshBox(inside,'ECR console',[44,8,17],[26,5,3],M.dark,'Integrated machinery monitoring console.','ecr');
+ for(let i=0;i<6;i++){meshBox(inside,'ECR monitoring display '+(i+1),[33+i*4.2,13,19],[3.5,4,1],M.green,'Engine parameters, alarms and automation overview.','ecr');}
+ meshBox(inside,'Automation cabinet',[57,7,-15],[8,14,10],M.dark,'PLC / integrated automation control cabinet.','ecr');
+ // Electrical room, main and emergency switchboards
+ meshBox(inside,'Electrical compartment',[94,13,0],[36,26,48],M.blue,'Electrical distribution compartment.','electrical',false);
+ meshBox(inside,'Main switchboard',[90,11,17],[27,15,4],M.dark,'Main AC switchboard distributes generator power. Study busbars, ACBs, protection and metering.','electrical');
+ for(let i=0;i<8;i++){meshBox(inside,'Switchboard breaker '+(i+1),[78+i*3.4,12,19.5],[2.5,9,1],M.gold,'Circuit breaker protects and isolates an outgoing feeder.','electrical');}
+ meshBox(inside,'Transformer',[106,8,-15],[11,12,12],M.red,'Transformer changes AC voltage for a downstream system.','electrical');
+ meshBox(inside,'Emergency generator room',[132,13,0],[27,26,48],M.red,'Independent emergency power source compartment.','emergency',false);
+ meshBox(inside,'Emergency generator',[129,9,0],[16,10,15],M.gold,'Emergency generator supplies designated essential loads after main power failure.','emergency');
+ meshBox(inside,'Emergency switchboard',[141,10,17],[9,13,4],M.dark,'Emergency switchboard distributes emergency power.','emergency');
+ meshBox(inside,'Battery bank and UPS',[141,8,-15],[11,10,12],M.machine,'DC batteries and UPS support selected critical equipment.','emergency');
+ // bridge/aft accommodation
+ meshBox(inside,'Bridge and navigation room',[-115,30,0],[30,18,44],M.white,'Bridge: navigation, communications and ship control.','bridge',false);
+ meshBox(inside,'Bridge navigation console',[-115,25,12],[24,5,3],M.dark,'Navigation console with radar / ECDIS / communications study points.','bridge');
+ for(let i=0;i<4;i++)meshBox(inside,'Bridge instrument '+(i+1),[-125+i*6.5,31,15],[5,4,1],M.green,'Bridge electronic navigation or communication equipment.','bridge');
+ // compartment top outlines/doors, tags
+ makeTag('ENGINE ROOM',[-43,34,0]);makeTag('ECR',[45,31,0]);makeTag('ELECTRICAL',[94,31,0]);makeTag('EMERGENCY',[132,31,0]);makeTag('BRIDGE',[-115,42,0]);
+}
+buildTrainingInteriors();
+
+// Load authentic free CC0 exterior GLB. If online fetch fails, retain clear stylized fallback, never blank.
+const loader=new GLTFLoader();let exteriorLoaded=false;
+function makeFallbackExterior(){
+ const g=new THREE.Group();root.add(g);
+ meshBox(g,'Hull',[0,10,0],[290,24,40],M.blue,'Merchant vessel hull','all',false);
+ meshBox(g,'Forecastle',[112,22,0],[45,18,36],M.steel,'Forward deck','all',false);
+ meshBox(g,'Aft accommodation',[-108,35,0],[42,50,38],M.white,'Bridge and accommodation','bridge',false);
+ meshBox(g,'Bridge windows',[-108,59,0],[44,9,40],M.glass,'Navigation bridge','bridge',false);
+ meshBox(g,'Funnel',[-80,68,12],[12,28,12],M.red,'Exhaust funnel','all',false);
+ for(let x=-75;x<90;x+=23)for(let z of [-14,0,14])meshBox(g,'Deck container',[x,26,z],[20,12,12],M.gold,'Cargo container','all',false);
+ cyl(g,'Propeller',[-151,4,0],6,8,M.gold,'engine','Propeller converts shaft torque into thrust.');
+ return g;
+}
+const fallback=makeFallbackExterior();
+const MODEL_URL='https://tevy.dev/models/container-ship/v1/lod0.glb';
+let assetSettled=false;
+// Never leave the intro overlay blocking the scene if a third-party model stalls.
+const modelTimeout=setTimeout(()=>{
+ if(assetSettled)return;
+ document.querySelector('#loader').style.display='none';
+ fallback.visible=true;
+ notify('External ship model is taking too long. Showing the built-in ship; you can explore now.');
+},9000);
+loader.load(MODEL_URL,gltf=>{
+ assetSettled=true;clearTimeout(modelTimeout);
+ const model=gltf.scene;model.scale.setScalar(1);model.position.set(0,0,0);model.rotation.y=0;
+ model.traverse(o=>{if(o.isMesh){o.castShadow=true;o.receiveShadow=true}});
+ root.add(model);fallback.visible=false;exteriorLoaded=true;document.querySelector('#loader').style.display='none';notify('Real CC0 container-ship model loaded');
+ // set view around model bounds
+ const box=new THREE.Box3().setFromObject(model),size=box.getSize(new THREE.Vector3()),center=box.getCenter(new THREE.Vector3());controls.target.copy(center);camera.position.set(center.x+size.x*.75,center.y+size.y*.55,center.z+size.z*1.15);
+},xhr=>{},err=>{
+ assetSettled=true;clearTimeout(modelTimeout);
+ document.querySelector('#loader').style.display='none';fallback.visible=true;notify('External 3D asset unavailable. Built-in ship is active; explore the rooms.');
+});
+function notify(s){const t=document.querySelector('#toast');t.textContent=s;t.style.display='block';setTimeout(()=>t.style.display='none',3600)}
+let mode='exterior',selected='all',labelsOn=true;
+function showMode(m){mode=m;root.visible=m!=='interior';inside.visible=m==='interior'||m==='cutaway';if(m==='cutaway'){fallback.visible=false;if(!exteriorLoaded)fallback.visible=true;}document.querySelector('#viewTitle').textContent=m==='exterior'?'Vessel exterior':m==='cutaway'?'Cutaway systems overview':'Compartment interior';document.querySelector('#coords').textContent='CAM 0'+(m==='exterior'?1:m==='cutaway'?2:3)+' · '+m.toUpperCase();if(m!=='exterior')focusRoom(selected==='all'?'engine':selected);document.querySelectorAll('[data-mode]').forEach(b=>b.classList.toggle('active',b.dataset.mode===m))}
+function focusRoom(room){selected=room;const targets={all:[0,15,0],engine:[-42,12,0],ecr:[45,13,0],electrical:[94,13,0],bridge:[-115,30,0],emergency:[132,13,0]};const p=targets[room]||targets.all;controls.target.set(...p);camera.position.set(p[0]+55,p[1]+40,p[2]+70);document.querySelectorAll('[data-room]').forEach(b=>b.classList.toggle('active',b.dataset.room===room));document.querySelector('#viewTitle').textContent=(room==='all'?'Full vessel':room.toUpperCase()+' exploration');document.querySelector('#coords').textContent='COMPARTMENT · '+room.toUpperCase();if(room!=='all')showMode('interior');document.querySelector('#detail').innerHTML=`<span class="tag">${room.toUpperCase()} SYSTEM</span><h3>${room==='all'?'Merchant vessel':room.toUpperCase()}</h3><p>Navigate the compartment, select machinery and study its operation, electrical connections and protection.</p><div class="learning"><h4>ETO CHECKPOINT</h4><p>Identify supply → understand function → trace control → locate protection → describe safe isolation.</p></div>`}
+function detail(d){document.querySelector('#detail').innerHTML=`<span class="tag">${(d.room||'VESSEL').toUpperCase()} EQUIPMENT</span><h3>${d.name}</h3><p>${d.detail||'Ship equipment: explore its function and system connections.'}</p><div class="specs"><div class="spec"><small>STUDY CATEGORY</small><b>${d.room||'Marine'}</b></div><div class="spec"><small>LEARNING MODE</small><b>Equipment ID</b></div></div><div class="learning"><h4>ETO STUDY STEPS</h4><p>1. Identify nameplate and function.<br>2. Trace power and control circuits.<br>3. Understand alarms and protection.<br>4. Review safe isolation and maintenance.</p></div>`}
+renderer.domElement.addEventListener('pointerup',e=>{if(e.target!==renderer.domElement)return;const r=renderer.domElement.getBoundingClientRect();pointer.x=((e.clientX-r.left)/r.width)*2-1;pointer.y=-((e.clientY-r.top)/r.height)*2+1;ray.setFromCamera(pointer,camera);let objs=ray.intersectObjects(inside.children,true);if(!objs.length)objs=ray.intersectObjects(root.children,true);if(objs.length){let o=objs[0].object;while(o&&!o.userData.name)o=o.parent;if(o&&o.userData.name)detail(o.userData)}});
+document.querySelectorAll('[data-mode]').forEach(b=>b.onclick=()=>showMode(b.dataset.mode));
+document.querySelectorAll('[data-room]').forEach(b=>b.onclick=()=>focusRoom(b.dataset.room));
+document.querySelector('#toggleCut').onclick=()=>showMode(mode==='cutaway'?'exterior':'cutaway');
+document.querySelector('#labels').onclick=()=>{labelsOn=!labelsOn;labels.forEach(x=>x.visible=labelsOn);document.querySelector('#labels').textContent='◎ Labels: '+(labelsOn?'ON':'OFF')};
+document.querySelector('#reset').onclick=()=>{camera.position.set(170,115,195);controls.target.set(0,10,0);controls.update();notify('Camera reset')};
+let tourIndex=0,tourTimer;const tour=['engine','ecr','electrical','emergency','bridge'];document.querySelector('#tour').onclick=()=>{clearInterval(tourTimer);tourIndex=0;focusRoom(tour[tourIndex]);tourTimer=setInterval(()=>{tourIndex++;if(tourIndex>=tour.length){clearInterval(tourTimer);notify('Guided tour complete');return}focusRoom(tour[tourIndex])},4500);notify('Guided tour started · 4.5 seconds per compartment')};
+function resize(){const w=stage.clientWidth,h=stage.clientHeight;camera.aspect=w/h;camera.updateProjectionMatrix();renderer.setSize(w,h)}window.addEventListener('resize',resize);
+function animate(){requestAnimationFrame(animate);controls.update();renderer.render(scene,camera)}animate();
+</script>
+</body></html>
